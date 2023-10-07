@@ -7,7 +7,7 @@ FROM specs;
 -------------------------------------
 SELECT worldwide_gross
 FROM revenue;
--- ** JOIN revenue (r) with specs (s) **
+-- ** Join revenue (r) with specs (s) **
 SELECT 
 	film_title,
 	release_year,
@@ -28,7 +28,7 @@ LIMIT 1;
 -- Answer: Semi-Tough from 1977, with a gross of $37,187,139.
 
 -- 2. What year has the highest average imdb rating?
--- ** JOIN rating (r) with specs (s) **
+-- ** Join rating (r) with specs (s) **
 SELECT
 	film_title,
 	release_year,
@@ -57,7 +57,7 @@ LIMIT 1;
 -- Answer: 1991: Average IMDB rating = 7.45
 
 -- 3. What is the highest grossing G-rated movie? Which company distributed it?
--- ** JOIN specs and revenue and find highest grossing G-rated movie **
+-- ** Join specs and revenue and find highest grossing G-rated movie **
 SELECT
 	s.film_title,
 	s.mpaa_rating,
@@ -91,7 +91,7 @@ SELECT
 	COUNT(movie_id)
 FROM specs
 GROUP BY domestic_distributor_id;
--- ** JOIN distributors table **
+-- ** Join distributors table **
 SELECT 
 	d.company_name,
 	COUNT(s.film_title) AS films_distributed
@@ -120,6 +120,46 @@ SELECT *
 FROM distributors
 WHERE headquarters NOT LIKE '%CA%';
 -- ** Find movies distributed by those two companies **
-SELECT  
+SELECT
+	film_title,
+	domestic_distributor_id
+FROM specs
+WHERE
+	domestic_distributor_id = 86137
+	OR domestic_distributor_id = 86144;
+-- ** Put it all together **
+SELECT
+	s.film_title,
+	d.company_name
+FROM specs AS s
+JOIN distributors AS d
+	ON d.distributor_id = s.domestic_distributor_id
+WHERE domestic_distributor_id IN
+	(SELECT distributor_id
+	FROM distributors
+	WHERE headquarters NOT LIKE '%CA%');
 
 -- 7. Which have a higher average rating, movies which are over two hours long or movies which are under two hours?
+-- ** Count movies over 2 hours long and find their average rating **
+SELECT
+	COUNT(s.film_title),
+	AVG(r.imdb_rating) AS avg_rating
+FROM specs AS s
+JOIN rating AS r
+	USING(movie_id)
+WHERE length_in_min IN
+	(SELECT length_in_min
+	FROM specs
+	WHERE length_in_min > 120);
+-- ** Count movies under 2 hours long and find their average rating **
+SELECT
+	COUNT(s.film_title),
+	AVG(r.imdb_rating) AS avg_rating
+FROM specs AS s
+JOIN rating AS r
+	USING(movie_id)
+WHERE length_in_min IN
+	(SELECT length_in_min
+	FROM specs
+	WHERE length_in_min < 120);
+-- Answer: Movies OVER 2 hours have higher ratings
