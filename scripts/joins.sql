@@ -19,7 +19,7 @@ LEFT JOIN revenue
 SELECT
 	film_title,
 	release_year,
-	worldwide_gross
+	CAST(worldwide_gross AS money)
 FROM specs
 LEFT JOIN revenue
 	USING(movie_id)
@@ -61,7 +61,7 @@ LIMIT 1;
 SELECT
 	s.film_title,
 	s.mpaa_rating,
-	r.worldwide_gross
+	CAST(r.worldwide_gross AS money)
 FROM specs AS s
 JOIN revenue AS r
 	ON s.movie_id = r.movie_id
@@ -72,7 +72,7 @@ LIMIT 1;
 SELECT
 	s.film_title,
 	s.mpaa_rating,
-	r.worldwide_gross,
+	CAST(r.worldwide_gross AS money),
 	d.company_name
 FROM specs AS s
 LEFT JOIN revenue AS r
@@ -104,14 +104,14 @@ GROUP BY d.company_name;
 -- 5. Write a query that returns the five distributors with the highest average movie budget.
 SELECT 
 	d.company_name,
-	AVG(r.film_budget) AS avg_budget
+	CAST(AVG(r.film_budget) AS money) AS avg_budget
 FROM distributors AS d
 INNER JOIN specs AS s
 	ON d.distributor_id = s.domestic_distributor_id
 LEFT JOIN revenue AS r
 	USING(movie_id)
 GROUP BY d.company_name
-ORDER BY avg_budget
+ORDER BY avg_budget DESC
 LIMIT 5;
 
 -- 6. How many movies in the dataset are distributed by a company which is not headquartered in California? Which of these movies has the highest imdb rating?
@@ -163,3 +163,49 @@ WHERE length_in_min IN
 	FROM specs
 	WHERE length_in_min < 120);
 -- Answer: Movies OVER 2 hours have higher ratings
+
+-- ** All in one query **
+SELECT
+	CASE
+		WHEN length_in_min > 120 THEN 'over_2_hrs'
+		ELSE 'under_2_hrs'
+		END AS duration,
+	ROUND(AVG(imdb_rating),1) AS avg_rating
+FROM specs
+INNER JOIN rating
+USING(movie_id)
+GROUP BY duration;
+
+-- ** And again with a union **
+SELECT
+	'over_2_hrs' AS duration,
+	COUNT(s.film_title) AS count_films,
+	ROUND(AVG(r.imdb_rating),1) AS avg_rating
+FROM specs AS s
+JOIN rating AS r
+	USING(movie_id)
+WHERE length_in_min IN
+	(SELECT length_in_min
+	FROM specs
+	WHERE length_in_min > 120)
+UNION
+SELECT
+	'under_2_hrs' AS duration,
+	COUNT(s.film_title) AS count_films,
+	ROUND(AVG(r.imdb_rating),1) AS avg_rating
+FROM specs AS s
+JOIN rating AS r
+	USING(movie_id)
+WHERE length_in_min IN
+	(SELECT length_in_min
+	FROM specs
+	WHERE length_in_min < 120);
+
+-- ** ALternative use of Select **
+SELECT
+	length_in_min >120 AS two_hours,
+	ROUND(AVG(imdb_rating),1) AS avg_rating
+FROM specs
+LEFT JOIN rating
+USING(movie_id)
+GROUP BY two_hours;
